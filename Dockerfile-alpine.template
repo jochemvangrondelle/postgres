@@ -246,6 +246,8 @@ RUN set -eux; \
 	mkdir -p /build/system_stats; \
 	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats || { echo "ERROR: Failed to clone system_stats"; exit 1; }; \
 	cd /build/system_stats; \
+# Fix missing ctype.h include in misc.c
+	sed -i '1i#include <ctype.h>' misc.c || { echo "ERROR: Failed to patch system_stats"; exit 1; }; \
 	make USE_PGXS=1 || { echo "ERROR: system_stats build failed"; exit 1; }; \
 	make install USE_PGXS=1 || { echo "ERROR: system_stats install failed"; exit 1; }; \
 	cd /; \

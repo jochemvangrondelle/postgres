@@ -217,6 +217,8 @@ RUN set -eux; \
 	mkdir -p /build/system_stats; \
 	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats; \
 	cd /build/system_stats; \
+# Fix missing ctype.h include in misc.c
+	sed -i '1i#include <ctype.h>' misc.c; \
 	make USE_PGXS=1; \
 	make install USE_PGXS=1; \
 	cd /; \
