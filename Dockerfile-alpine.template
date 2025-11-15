@@ -175,7 +175,7 @@ RUN set -eux; \
 		--with-zstd \
 {{ ) else "" end -}}
 	; \
-	make -j "$(nproc)" world-bin; \
+	make -j "${DOCKER_PG_BUILD_JOBS:-$(nproc)}" world-bin; \
 	make install-world-bin; \
 	make -C contrib install; \
 	\
@@ -193,12 +193,12 @@ RUN set -eux; \
 		libxml2-dev \
 	; \
 	mkdir -p /build/postgis; \
-	git clone --depth 1 --branch master https://github.com/postgis/postgis.git /build/postgis; \
+	git clone --depth 1 --branch master https://github.com/postgis/postgis.git /build/postgis || { echo "ERROR: Failed to clone PostGIS"; exit 1; }; \
 	cd /build/postgis; \
-	./autogen.sh; \
-	./configure --with-pgconfig=/usr/local/bin/pg_config; \
-	make -j "$(nproc)"; \
-	make install; \
+	./autogen.sh || { echo "ERROR: PostGIS autogen.sh failed"; exit 1; }; \
+	./configure --with-pgconfig=/usr/local/bin/pg_config || { echo "ERROR: PostGIS configure failed"; exit 1; }; \
+	make -j "${DOCKER_PG_BUILD_JOBS:-$(nproc)}" || { echo "ERROR: PostGIS build failed"; exit 1; }; \
+	make install || { echo "ERROR: PostGIS install failed"; exit 1; }; \
 	cd /; \
 	\
 # Install TimescaleDB
@@ -218,20 +218,19 @@ RUN set -eux; \
 		util-linux-dev \
 	; \
 	mkdir -p /build/timescaledb; \
-	git clone https://github.com/timescale/timescaledb /build/timescaledb; \
+	git clone https://github.com/timescale/timescaledb /build/timescaledb || { echo "ERROR: Failed to clone TimescaleDB"; exit 1; }; \
 	cd /build/timescaledb; \
 	rm -fr build; \
-	git checkout master; \
-	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"; \
-	cd build && make install; \
+	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker" || { echo "ERROR: TimescaleDB bootstrap failed"; exit 1; }; \
+	cd build && make install || { echo "ERROR: TimescaleDB build/install failed"; exit 1; }; \
 	cd /; \
 	\
 # Install system_stats
 	mkdir -p /build/system_stats; \
-	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats; \
+	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats || { echo "ERROR: Failed to clone system_stats"; exit 1; }; \
 	cd /build/system_stats; \
-	make USE_PGXS=1; \
-	make install USE_PGXS=1; \
+	make USE_PGXS=1 || { echo "ERROR: system_stats build failed"; exit 1; }; \
+	make install USE_PGXS=1 || { echo "ERROR: system_stats install failed"; exit 1; }; \
 	cd /; \
 	\
 	runDeps="$( \

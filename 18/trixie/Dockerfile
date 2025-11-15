@@ -184,7 +184,6 @@ RUN set -ex; \
 	git clone https://github.com/timescale/timescaledb /build/timescaledb; \
 	cd /build/timescaledb; \
 	rm -fr build; \
-	git checkout master; \
 	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"; \
 	cd build && make install; \
 	cd /; \
