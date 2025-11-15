@@ -167,6 +167,7 @@ RUN set -ex; \
 # Install TimescaleDB build dependencies and build from source
 	timescaledbSavedAptMark="$(apt-mark showmanual)"; \
 	apt-get install -y --no-install-recommends \
+		bash \
 		build-essential \
 		ca-certificates \
 		cmake \
@@ -180,7 +181,7 @@ RUN set -ex; \
 	git clone https://github.com/timescale/timescaledb /build/timescaledb; \
 	cd /build/timescaledb; \
 	rm -fr build; \
-	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"; \
+	bash ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"; \
 	cd build && make install; \
 	cd /; \
 	rm -rf /build/timescaledb; \

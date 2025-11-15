@@ -177,6 +177,7 @@ RUN set -eux; \
 	\
 # Install TimescaleDB
 	apk add --no-cache --virtual .timescaledb-build-deps \
+		bash \
 		ca-certificates \
 		git \
 		openssl \
@@ -195,7 +196,7 @@ RUN set -eux; \
 	git clone https://github.com/timescale/timescaledb /build/timescaledb || { echo "ERROR: Failed to clone TimescaleDB"; exit 1; }; \
 	cd /build/timescaledb; \
 	rm -fr build; \
-	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker" || { echo "ERROR: TimescaleDB bootstrap failed"; exit 1; }; \
+	bash ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker" || { echo "ERROR: TimescaleDB bootstrap failed"; exit 1; }; \
 	cd build && make install || { echo "ERROR: TimescaleDB build/install failed"; exit 1; }; \
 	cd /; \
 	\
