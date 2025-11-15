@@ -1,4 +1,63 @@
-# https://github.com/docker-library/postgres
+# PostgreSQL Docker Image (Fork)
+
+## ⚠️ This is a Fork
+
+**This repository is a fork of the [official Docker PostgreSQL image](https://github.com/docker-library/postgres).**
+
+This fork extends the official PostgreSQL Docker images with additional extensions that are commonly needed but not included in the base image.
+
+### Extensions Added
+
+This fork includes the following PostgreSQL extensions:
+
+- **hstore** (via contrib) - Key-value store data type
+- **PostGIS** - Spatial and geographic objects support
+- **pg_stat_statements** (via contrib) - Execution statistics of SQL statements
+- **pgcrypto** (via contrib) - Cryptographic functions
+- **timescaledb** - Time-series database extension
+- **system_stats** - System-level statistics and monitoring
+
+### OS limited
+
+Only supports:
+
+- Alpine 3.22
+- Debian Trixie
+
+### Docker containers
+
+We do not publish Docker images. If you wish to use this work, you have to build the images locally:
+
+```bash
+# PostgreSQL 18 Alpine
+docker build -t postgres:18-alpine3.22 18/alpine3.22/
+
+# PostgreSQL 18 Debian (trixie)
+docker build -t postgres:18-trixie 18/trixie/
+
+# PostgreSQL 17 Alpine
+docker build -t postgres:17-alpine3.22 17/alpine3.22/
+
+# PostgreSQL 16 Alpine
+docker build -t postgres:16-alpine3.22 16/alpine3.22/
+```
+
+### License Information
+
+**Important:** The licensing of this fork depends on the licenses of the included extensions:
+
+- **PostgreSQL** and **contrib extensions** (hstore, pg_stat_statements, pgcrypto): PostgreSQL License (similar to MIT/BSD)
+- **PostGIS**: GPL v2 or later
+- **TimescaleDB**: Apache License 2.0
+- **system_stats**: Apache License 2.0
+
+The base Docker image template is licensed under the same terms as the [official Docker PostgreSQL image](https://github.com/docker-library/postgres) (see LICENSE file).
+
+**If legally required, external extension licenses can be added to this repository. Please open an issue if you need specific license files included.**
+
+---
+
+## Original Repository
 
 ## Maintained by: [the PostgreSQL Docker Community](https://github.com/docker-library/postgres)
 
