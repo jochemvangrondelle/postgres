@@ -4,11 +4,9 @@ set -Eeuo pipefail
 # we will support at most two entries in each of these lists, and both should be in descending order
 supportedDebianSuites=(
 	trixie
-	bookworm
 )
 supportedAlpineVersions=(
 	3.22
-	3.21
 )
 defaultDebianSuite="${supportedDebianSuites[0]}"
 declare -A debianSuites=(
