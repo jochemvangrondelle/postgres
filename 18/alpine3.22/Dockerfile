@@ -59,8 +59,8 @@ ENV DOCKER_PG_LLVM_DEPS \
 		llvm19-dev \
 		clang19
 
+# Download PostgreSQL source
 RUN set -eux; \
-	\
 	wget -O postgresql.tar.bz2 "https://ftp.postgresql.org/pub/source/v$PG_VERSION/postgresql-$PG_VERSION.tar.bz2"; \
 	echo "$PG_SHA256 *postgresql.tar.bz2" | sha256sum -c -; \
 	mkdir -p /usr/src/postgresql; \
@@ -70,8 +70,10 @@ RUN set -eux; \
 		--directory /usr/src/postgresql \
 		--strip-components 1 \
 	; \
-	rm postgresql.tar.bz2; \
-	\
+	rm postgresql.tar.bz2
+
+# Install PostgreSQL build dependencies
+RUN set -eux; \
 	apk add --no-cache --virtual .build-deps \
 		$DOCKER_PG_LLVM_DEPS \
 		bison \
@@ -105,8 +107,10 @@ RUN set -eux; \
 # https://salsa.debian.org/postgresql/postgresql-common/-/commit/89c384273f4c4092483598c292b1b1b188816cce
 # https://www.postgresql.org/docs/18/install-make.html#CONFIGURE-OPTION-WITH-LIBURING
 		liburing-dev \
-	; \
-	\
+	;
+
+# Build and install PostgreSQL
+RUN set -eux; \
 	cd /usr/src/postgresql; \
 # update "DEFAULT_PGSOCKET_DIR" to "/var/run/postgresql" (matching Debian)
 # see https://anonscm.debian.org/git/pkg-postgresql/postgresql.git/tree/debian/patches/51-default-sockets-in-var.patch?id=8b539fcb3e093a521c095e70bdfa76887217b89f
@@ -156,8 +160,10 @@ RUN set -eux; \
 	make -j "${DOCKER_PG_BUILD_JOBS:-$(nproc)}" world-bin; \
 	make install-world-bin; \
 	make -C contrib install; \
-	\
-# Install PostGIS
+	postgres --version
+
+# Install PostGIS build dependencies
+RUN set -eux; \
 	apk add --no-cache --virtual .postgis-build-deps \
 		git \
 		autoconf \
@@ -169,7 +175,10 @@ RUN set -eux; \
 		json-c-dev \
 		protobuf-c-dev \
 		libxml2-dev \
-	; \
+	;
+
+# Build and install PostGIS
+RUN set -eux; \
 	mkdir -p /build/postgis; \
 	git clone --depth 1 --branch master https://github.com/postgis/postgis.git /build/postgis || { echo "ERROR: Failed to clone PostGIS"; exit 1; }; \
 	cd /build/postgis; \
@@ -178,8 +187,10 @@ RUN set -eux; \
 	make -j "${DOCKER_PG_BUILD_JOBS:-$(nproc)}" || { echo "ERROR: PostGIS build failed"; exit 1; }; \
 	make install || { echo "ERROR: PostGIS install failed"; exit 1; }; \
 	cd /; \
-	\
-# Install TimescaleDB
+	rm -rf /build/postgis
+
+# Install TimescaleDB build dependencies
+RUN set -eux; \
 	apk add --no-cache --virtual .timescaledb-build-deps \
 		bash \
 		ca-certificates \
@@ -195,7 +206,10 @@ RUN set -eux; \
 		libc-dev \
 		make \
 		util-linux-dev \
-	; \
+	;
+
+# Build and install TimescaleDB
+RUN set -eux; \
 	mkdir -p /build/timescaledb; \
 	git clone https://github.com/timescale/timescaledb /build/timescaledb || { echo "ERROR: Failed to clone TimescaleDB"; exit 1; }; \
 	cd /build/timescaledb; \
@@ -203,15 +217,20 @@ RUN set -eux; \
 	bash ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker" || { echo "ERROR: TimescaleDB bootstrap failed"; exit 1; }; \
 	cd build && make install || { echo "ERROR: TimescaleDB build/install failed"; exit 1; }; \
 	cd /; \
-	\
-# Install system_stats
+	rm -rf /build/timescaledb
+
+# Build and install system_stats (reuses git from previous steps)
+RUN set -eux; \
 	mkdir -p /build/system_stats; \
 	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats || { echo "ERROR: Failed to clone system_stats"; exit 1; }; \
 	cd /build/system_stats; \
 	make USE_PGXS=1 || { echo "ERROR: system_stats build failed"; exit 1; }; \
 	make install USE_PGXS=1 || { echo "ERROR: system_stats install failed"; exit 1; }; \
 	cd /; \
-	\
+	rm -rf /build/system_stats
+
+# Calculate and install runtime dependencies, then cleanup
+RUN set -eux; \
 	runDeps="$( \
 		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local \
 			| tr ',' '\n' \
@@ -238,15 +257,11 @@ RUN set -eux; \
 		$([ "$(apk --print-arch)" != 'ppc64le' ] && echo 'nss_wrapper') \
 	; \
 	apk del --no-network .build-deps .postgis-build-deps .timescaledb-build-deps; \
-	rm -rf /build; \
-	cd /; \
 	rm -rf \
 		/usr/src/postgresql \
 		/usr/local/share/doc \
 		/usr/local/share/man \
-	; \
-	\
-	postgres --version
+	;
 
 # make the sample config easier to munge (and "correct by default")
 RUN set -eux; \
