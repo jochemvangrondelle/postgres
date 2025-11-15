@@ -156,6 +156,54 @@ RUN set -ex; \
 	sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/createcluster.conf; \
 	apt-get install -y --no-install-recommends \
 		"postgresql-$PG_MAJOR=$PG_VERSION" \
+		"postgresql-contrib-$PG_MAJOR=$PG_VERSION" \
+	; \
+	\
+# Install PostGIS
+	apt-get install -y --no-install-recommends \
+		"postgresql-$PG_MAJOR-postgis" \
+	; \
+	\
+# Install TimescaleDB build dependencies and build from source
+	timescaledbSavedAptMark="$(apt-mark showmanual)"; \
+	apt-get install -y --no-install-recommends \
+		build-essential \
+		ca-certificates \
+		cmake \
+		git \
+		libc-dev \
+		libssl-dev \
+		make \
+		postgresql-server-dev-$PG_MAJOR \
+	; \
+	mkdir -p /build/timescaledb; \
+	git clone https://github.com/timescale/timescaledb /build/timescaledb; \
+	cd /build/timescaledb; \
+	rm -fr build; \
+	git checkout master; \
+	./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"; \
+	cd build && make install; \
+	cd /; \
+	rm -rf /build/timescaledb; \
+	\
+# Install system_stats
+	mkdir -p /build/system_stats; \
+	git clone https://github.com/EnterpriseDB/system_stats.git /build/system_stats; \
+	cd /build/system_stats; \
+	make USE_PGXS=1; \
+	make install USE_PGXS=1; \
+	cd /; \
+	rm -rf /build/system_stats; \
+	apt-mark auto '.*' > /dev/null; \
+	[ -z "$timescaledbSavedAptMark" ] || apt-mark manual $timescaledbSavedAptMark > /dev/null; \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+		build-essential \
+		cmake \
+		git \
+		libc-dev \
+		libssl-dev \
+		make \
+		postgresql-server-dev-$PG_MAJOR \
 	; \
 	\
 	rm -rf /var/lib/apt/lists/*; \
@@ -177,7 +225,8 @@ RUN set -eux; \
 	cp -v /usr/share/postgresql/postgresql.conf.sample.dpkg /usr/share/postgresql/postgresql.conf.sample; \
 	ln -sv ../postgresql.conf.sample "/usr/share/postgresql/$PG_MAJOR/"; \
 	sed -ri "s!^#?(listen_addresses)\s*=\s*\S+.*!\1 = '*'!" /usr/share/postgresql/postgresql.conf.sample; \
-	grep -F "listen_addresses = '*'" /usr/share/postgresql/postgresql.conf.sample
+	grep -F "listen_addresses = '*'" /usr/share/postgresql/postgresql.conf.sample; \
+	sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,pg_stat_statements,\2'/;s/,'/'/" /usr/share/postgresql/postgresql.conf.sample
 
 RUN install --verbose --directory --owner postgres --group postgres --mode 3777 /var/run/postgresql
 
